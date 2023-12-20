@@ -42,7 +42,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="IMGBlibrary\DDSMethods.cs" />
-    <Compile Include="IMGBlibrary\IMGBCmnMethods.cs" />
+    <Compile Include="IMGBlibrary\IMGBMethods.cs" />
     <Compile Include="IMGBlibrary\IMGBRepack.cs" />
     <Compile Include="IMGBlibrary\IMGBRepack2.cs" />
     <Compile Include="IMGBlibrary\IMGBUnpack.cs" />

@@ -5,9 +5,9 @@ using System.Text;
 
 namespace IMGBlibrary
 {
-    public partial class ImageMethods
+    public class IMGBMethods
     {
-        static uint GetGTEXChunkPos(string inImgHeaderBlockFile)
+        public static uint GetGTEXChunkPos(string inImgHeaderBlockFile)
         {
             uint gtexPos = 0;
             var gtexChunkString = "GTEX";
@@ -33,7 +33,7 @@ namespace IMGBlibrary
         }
 
 
-        static void GetImageInfo(string inImgHeaderBlockFile, ImageMethods imgbVars)
+        public static void GetImageInfo(string inImgHeaderBlockFile, IMGBVariables imgbVars)
         {
             using (var gtexStream = new FileStream(inImgHeaderBlockFile, FileMode.Open, FileAccess.Read))
             {
@@ -67,7 +67,7 @@ namespace IMGBlibrary
         }
 
 
-        static void GetExtImgInfo(BinaryReader ddsReader, ImageMethods imgbVars)
+        public static void GetExtImgInfo(BinaryReader ddsReader, IMGBVariables imgbVars)
         {
             ddsReader.BaseStream.Position = 12;
             imgbVars.OutImgHeight = ddsReader.ReadUInt32();
@@ -112,7 +112,7 @@ namespace IMGBlibrary
         }
 
 
-        static bool CheckImgFilesBatch(int fileAmount, string extractImgbDir, string imgHeaderBlockFileName, ImageMethods imgbVars)
+        public static bool CheckImgFilesBatch(int fileAmount, string extractImgbDir, string imgHeaderBlockFileName, IMGBVariables imgbVars)
         {
             var isMissingAnImg = false;
             var imgFileCount = 1;

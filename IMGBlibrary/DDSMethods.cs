@@ -4,9 +4,9 @@ using System.IO;
 
 namespace IMGBlibrary
 {
-    public partial class ImageMethods
+    public class DDSMethods
     {
-        public static void BaseHeader(FileStream ddsFileVar, BinaryWriter ddsWriterVar, ImageMethods imgbVars)
+        public static void BaseHeader(FileStream ddsFileVar, BinaryWriter ddsWriterVar, IMGBVariables imgbVars)
         {
             uint mipCountVar = Convert.ToUInt32(imgbVars.GtexImgMipCount);
 
@@ -48,7 +48,7 @@ namespace IMGBlibrary
             }
         }
 
-        public static void PixelFormatHeader(BinaryWriter ddsWriterVar, ImageMethods imgbVars)
+        public static void PixelFormatHeader(BinaryWriter ddsWriterVar, IMGBVariables imgbVars)
         {
             uint imgFormat = Convert.ToUInt32(imgbVars.GtexImgFormatValue);
             uint imgWidth = imgbVars.GtexImgWidth;

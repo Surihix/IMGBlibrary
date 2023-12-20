@@ -6,29 +6,29 @@ using System.Linq;
 
 namespace IMGBlibrary
 {
-    public partial class ImageMethods
+    public class IMGBRepack
     {
         public static void RepackIMGBType1(string imgHeaderBlockFile, string outImgbFile, string extractedIMGBdir)
         {
-            var gtexPos = GetGTEXChunkPos(imgHeaderBlockFile);
+            var gtexPos = IMGBMethods.GetGTEXChunkPos(imgHeaderBlockFile);
             if (gtexPos == 0)
             {
                 Console.WriteLine("Unable to find GTEX chunk. skipped to next file.");
                 return;
             }
 
-            var imgbVars = new ImageMethods();
+            var imgbVars = new IMGBVariables();
             imgbVars.GtexStartVal = gtexPos;
 
-            GetImageInfo(imgHeaderBlockFile, imgbVars);
+            IMGBMethods.GetImageInfo(imgHeaderBlockFile, imgbVars);
 
-            if (!GtexImgFormatValuesArray.Contains(imgbVars.GtexImgFormatValue))
+            if (!IMGBVariables.GtexImgFormatValuesArray.Contains(imgbVars.GtexImgFormatValue))
             {
                 Console.WriteLine("Detected unknown image format. skipped to next file.");
                 return;
             }
 
-            if (!GtexImgTypeValuesArray.Contains(imgbVars.GtexImgTypeValue))
+            if (!IMGBVariables.GtexImgTypeValuesArray.Contains(imgbVars.GtexImgTypeValue))
             {
                 Console.WriteLine("Detected unknown image type. skipped to next file.");
                 return;
@@ -75,7 +75,7 @@ namespace IMGBlibrary
 
 
         // Classic type
-        static void RepackClassicType1(string imgHeaderBlockFile, string extractedIMGBdir, ImageMethods imgbVars, FileStream imgbStream)
+        static void RepackClassicType1(string imgHeaderBlockFile, string extractedIMGBdir, IMGBVariables imgbVars, FileStream imgbStream)
         {
             var imgHeaderBlockFileName = Path.GetFileName(imgHeaderBlockFile);
             var currentDDSfile = Path.Combine(extractedIMGBdir, imgHeaderBlockFileName + ".dds");
@@ -97,7 +97,7 @@ namespace IMGBlibrary
                     {
                         using (var ddsReader = new BinaryReader(ddsStream))
                         {
-                            GetExtImgInfo(ddsReader, imgbVars);
+                            IMGBMethods.GetExtImgInfo(ddsReader, imgbVars);
                             var isValidImg = CheckExtImgInfo(imgbVars);
 
                             if (!isValidImg)
@@ -145,11 +145,11 @@ namespace IMGBlibrary
 
 
         // Cubemap type
-        static void RepackCubemapType1(string imgHeaderBlockFile, string extractedIMGBdir, ImageMethods imgbVars, FileStream imgbStream)
+        static void RepackCubemapType1(string imgHeaderBlockFile, string extractedIMGBdir, IMGBVariables imgbVars, FileStream imgbStream)
         {
             var imgHeaderBlockFileName = Path.GetFileName(imgHeaderBlockFile);
 
-            var isMissingAnImg = CheckImgFilesBatch(6, extractedIMGBdir, imgHeaderBlockFileName, imgbVars);
+            var isMissingAnImg = IMGBMethods.CheckImgFilesBatch(6, extractedIMGBdir, imgHeaderBlockFileName, imgbVars);
             if (isMissingAnImg)
             {
                 Console.WriteLine("Missing one or more cubemap type image files. skipped to next file.");
@@ -225,11 +225,11 @@ namespace IMGBlibrary
 
 
         // Stack type
-        static void RepackStackType1(string imgHeaderBlockFile, string extractedIMGBdir, ImageMethods imgbVars, FileStream imgbStream)
+        static void RepackStackType1(string imgHeaderBlockFile, string extractedIMGBdir, IMGBVariables imgbVars, FileStream imgbStream)
         {
             var imgHeaderBlockFileName = Path.GetFileName(imgHeaderBlockFile);
 
-            var isMissingAnImg = CheckImgFilesBatch(imgbVars.GtexImgDepth, extractedIMGBdir, imgHeaderBlockFileName, imgbVars);
+            var isMissingAnImg = IMGBMethods.CheckImgFilesBatch(imgbVars.GtexImgDepth, extractedIMGBdir, imgHeaderBlockFileName, imgbVars);
             if (isMissingAnImg)
             {
                 Console.WriteLine("Missing one or more stack type image files. skipped to next file.");
@@ -269,7 +269,7 @@ namespace IMGBlibrary
                         {
                             using (var ddsReader = new BinaryReader(ddsStream))
                             {
-                                GetExtImgInfo(ddsReader, imgbVars);
+                                IMGBMethods.GetExtImgInfo(ddsReader, imgbVars);
 
                                 using (var tempDDSstream = new MemoryStream())
                                 {
@@ -296,7 +296,7 @@ namespace IMGBlibrary
 
 
         // Common methods
-        static bool CheckExtImgInfo(ImageMethods imgbVars)
+        static bool CheckExtImgInfo(IMGBVariables imgbVars)
         {
             var isValidImg = true;
             if (imgbVars.GtexImgMipCount != imgbVars.OutImgMipCount)
@@ -327,7 +327,7 @@ namespace IMGBlibrary
         }
 
 
-        static bool CheckExtImgInfoBatch(int fileAmount, string extractImgbDir, string imgHeaderBlockFileName, ImageMethods imgbVars)
+        static bool CheckExtImgInfoBatch(int fileAmount, string extractImgbDir, string imgHeaderBlockFileName, IMGBVariables imgbVars)
         {
             var isAllValidImg = true;
             var imgFileCount = 1;
@@ -340,7 +340,7 @@ namespace IMGBlibrary
                 {
                     using (var ddsFileReader = new BinaryReader(ddsFileToCheck))
                     {
-                        GetExtImgInfo(ddsFileReader, imgbVars);
+                        IMGBMethods.GetExtImgInfo(ddsFileReader, imgbVars);
                         var isValidImg = CheckExtImgInfo(imgbVars);
 
                         if (!isValidImg)

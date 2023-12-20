@@ -1,6 +1,6 @@
 ﻿namespace IMGBlibrary
 {
-    public partial class ImageMethods
+    public class IMGBVariables
     {
         public static readonly string[] ImgHeaderBlockFileExtensions = new string[]
         {

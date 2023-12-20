@@ -6,18 +6,18 @@ using System.Linq;
 
 namespace IMGBlibrary
 {
-    public partial class ImageMethods
+    public class IMGBUnpack
     {
         public static void UnpackIMGB(string imgHeaderBlockFile, string inImgbFile, string extractIMGBdir)
         {
-            var gtexPos = GetGTEXChunkPos(imgHeaderBlockFile);
+            var gtexPos = IMGBMethods.GetGTEXChunkPos(imgHeaderBlockFile);
             if (gtexPos == 0)
             {
                 Console.WriteLine("Unable to find GTEX chunk. skipped to next file.");
                 return;
             }
 
-            var imgbVars = new ImageMethods();
+            var imgbVars = new IMGBVariables();
             imgbVars.GtexStartVal = gtexPos;
             imgbVars.GtexIsPs3Imgb = inImgbFile.EndsWith("ps3.imgb");
             imgbVars.GtexIsX360Imgb = inImgbFile.EndsWith("x360.imgb");
@@ -27,7 +27,7 @@ namespace IMGBlibrary
                 Console.WriteLine("Detected x360 version imgb file. images may not extract correctly.");
             }
 
-            GetImageInfo(imgHeaderBlockFile, imgbVars);
+            IMGBMethods.GetImageInfo(imgHeaderBlockFile, imgbVars);
 
             Console.WriteLine("Image Format Value: " + imgbVars.GtexImgFormatValue);
             Console.WriteLine("Image MipCount: " + imgbVars.GtexImgMipCount);
@@ -35,13 +35,13 @@ namespace IMGBlibrary
             Console.WriteLine("Image Width: " + imgbVars.GtexImgWidth);
             Console.WriteLine("Image Height: " + imgbVars.GtexImgHeight);
 
-            if (!GtexImgFormatValuesArray.Contains(imgbVars.GtexImgFormatValue))
+            if (!IMGBVariables.GtexImgFormatValuesArray.Contains(imgbVars.GtexImgFormatValue))
             {
                 Console.WriteLine("Detected unknown image format. skipped to next file.");
                 return;
             }
 
-            if (!GtexImgTypeValuesArray.Contains(imgbVars.GtexImgTypeValue))
+            if (!IMGBVariables.GtexImgTypeValuesArray.Contains(imgbVars.GtexImgTypeValue))
             {
                 Console.WriteLine("Detected unknown image type. skipped to next file.");
                 return;
@@ -86,7 +86,7 @@ namespace IMGBlibrary
 
 
         // Classic type
-        static void UnpackClassic(string imgHeaderBlockFile, string extractIMGBdir, ImageMethods imgbVars, FileStream imgbStream)
+        static void UnpackClassic(string imgHeaderBlockFile, string extractIMGBdir, IMGBVariables imgbVars, FileStream imgbStream)
         {
             var imgHeaderBlockFileName = Path.GetFileName(imgHeaderBlockFile);
 
@@ -100,8 +100,8 @@ namespace IMGBlibrary
                     {
                         using (var ddsWriter = new BinaryWriter(ddsStream))
                         {
-                            BaseHeader(ddsStream, ddsWriter, imgbVars);
-                            PixelFormatHeader(ddsWriter, imgbVars);
+                            DDSMethods.BaseHeader(ddsStream, ddsWriter, imgbVars);
+                            DDSMethods.PixelFormatHeader(ddsWriter, imgbVars);
 
                             gtexReader.BaseStream.Position = imgbVars.GtexStartVal + 16;
                             var mipOffsetsStartPos = gtexReader.ReadBytesUInt32(true);
@@ -134,7 +134,7 @@ namespace IMGBlibrary
 
 
         // Cubemap type
-        static void UnpackCubemap(string imgHeaderBlockFile, string extractIMGBdir, ImageMethods imgbVars, FileStream imgbStream)
+        static void UnpackCubemap(string imgHeaderBlockFile, string extractIMGBdir, IMGBVariables imgbVars, FileStream imgbStream)
         {
             var imgHeaderBlockFileName = Path.GetFileName(imgHeaderBlockFile);
 
@@ -157,8 +157,8 @@ namespace IMGBlibrary
                         {
                             using (var ddsWriter = new BinaryWriter(ddsStream))
                             {
-                                BaseHeader(ddsStream, ddsWriter, imgbVars);
-                                PixelFormatHeader(ddsWriter, imgbVars);
+                                DDSMethods.BaseHeader(ddsStream, ddsWriter, imgbVars);
+                                DDSMethods.PixelFormatHeader(ddsWriter, imgbVars);
 
                                 for (int m = 0; m < imgbVars.GtexImgMipCount; m++)
                                 {
@@ -191,7 +191,7 @@ namespace IMGBlibrary
 
 
         // Stack type
-        static void UnpackStack(string imgHeaderBlockFile, string extractIMGBdir, ImageMethods imgbVars, FileStream imgbStream)
+        static void UnpackStack(string imgHeaderBlockFile, string extractIMGBdir, IMGBVariables imgbVars, FileStream imgbStream)
         {
             var imgHeaderBlockFileName = Path.GetFileName(imgHeaderBlockFile);
 
@@ -221,8 +221,8 @@ namespace IMGBlibrary
                         {
                             using (var ddsWriter = new BinaryWriter(ddsStream))
                             {
-                                BaseHeader(ddsStream, ddsWriter, imgbVars);
-                                PixelFormatHeader(ddsWriter, imgbVars);
+                                DDSMethods.BaseHeader(ddsStream, ddsWriter, imgbVars);
+                                DDSMethods.PixelFormatHeader(ddsWriter, imgbVars);
 
                                 var writeMipDataAt = ddsStream.Length;
                                 ddsStream.Seek(writeMipDataAt, SeekOrigin.Begin);
@@ -245,7 +245,7 @@ namespace IMGBlibrary
 
 
         // Common methods
-        static void CopyMipToDDS(ImageMethods imgbVars, uint mipSize, FileStream imgbStream, FileStream ddsStream, uint mipStart)
+        static void CopyMipToDDS(IMGBVariables imgbVars, uint mipSize, FileStream imgbStream, FileStream ddsStream, uint mipStart)
         {
             // Set a bool to indicate whether to copy 
             // dds data or not
@@ -267,7 +267,7 @@ namespace IMGBlibrary
         }
 
 
-        static void SpecialPS3ImgMethods(ref bool doneCopying, ImageMethods imgbVars, uint mipSize, FileStream imgbStream, FileStream ddsStream)
+        static void SpecialPS3ImgMethods(ref bool doneCopying, IMGBVariables imgbVars, uint mipSize, FileStream imgbStream, FileStream ddsStream)
         {
             // If the conditions match a swizzled ps3 image,
             // then unswizzle the image data, color correct the data,
@@ -324,7 +324,7 @@ namespace IMGBlibrary
         }
 
 
-        static byte[] MortonUnswizzle(ImageMethods imgbVars, byte[] swizzledBufferVar)
+        static byte[] MortonUnswizzle(IMGBVariables imgbVars, byte[] swizzledBufferVar)
         {
             int widthVar = imgbVars.GtexImgWidth;
             int heightVar = imgbVars.GtexImgHeight;
