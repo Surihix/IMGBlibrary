@@ -2,7 +2,7 @@
 {
     public class IMGBVariables
     {
-        public static readonly string[] ImgHeaderBlockFileExtensions = new string[]
+        public static readonly string[] ImgHeaderBlockExtns = new string[]
         {
             ".txbh",
             ".txb",
