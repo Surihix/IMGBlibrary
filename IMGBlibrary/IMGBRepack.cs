@@ -77,7 +77,7 @@ namespace IMGBlibrary
         // Classic type
         static void RepackClassicType1(string imgHeaderBlockFile, string extractedIMGBdir, IMGBVariables imgbVars, FileStream imgbStream)
         {
-            var imgHeaderBlockFileName = Path.GetFileNameWithoutExtension(imgHeaderBlockFile);
+            var imgHeaderBlockFileName = Path.GetFileName(imgHeaderBlockFile);
             var currentDDSfile = Path.Combine(extractedIMGBdir, imgHeaderBlockFileName + ".dds");
 
             if (!File.Exists(currentDDSfile))
@@ -147,7 +147,7 @@ namespace IMGBlibrary
         // Cubemap type
         static void RepackCubemapType1(string imgHeaderBlockFile, string extractedIMGBdir, IMGBVariables imgbVars, FileStream imgbStream)
         {
-            var imgHeaderBlockFileName = Path.GetFileNameWithoutExtension(imgHeaderBlockFile);
+            var imgHeaderBlockFileName = Path.GetFileName(imgHeaderBlockFile);
 
             var isMissingAnImg = IMGBMethods.CheckImgFilesBatch(6, extractedIMGBdir, imgHeaderBlockFileName, imgbVars);
             if (isMissingAnImg)
@@ -227,7 +227,7 @@ namespace IMGBlibrary
         // Stack type
         static void RepackStackType1(string imgHeaderBlockFile, string extractedIMGBdir, IMGBVariables imgbVars, FileStream imgbStream)
         {
-            var imgHeaderBlockFileName = Path.GetFileNameWithoutExtension(imgHeaderBlockFile);
+            var imgHeaderBlockFileName = Path.GetFileName(imgHeaderBlockFile);
 
             var isMissingAnImg = IMGBMethods.CheckImgFilesBatch(imgbVars.GtexImgDepth, extractedIMGBdir, imgHeaderBlockFileName, imgbVars);
             if (isMissingAnImg)
