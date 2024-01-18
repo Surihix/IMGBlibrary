@@ -311,7 +311,7 @@ namespace IMGBlibrary
             // If the conditions match a ps3 pixel format 3 or 4 image,
             // then color correct the data and copy the data to the 
             // final dds file.
-            if (!doneCopying && imgbVars.GtexImgFormatValue.Equals(3) && imgbVars.GtexImgFormatValue.Equals(4))
+            if (!doneCopying && imgbVars.GtexImgFormatValue.Equals(3) || imgbVars.GtexImgFormatValue.Equals(4))
             {
                 var colorDataToCorrectArray = new byte[mipSize];
                 imgbStream.Read(colorDataToCorrectArray, 0, colorDataToCorrectArray.Length);
