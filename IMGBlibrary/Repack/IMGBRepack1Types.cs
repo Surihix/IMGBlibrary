@@ -1,81 +1,13 @@
-﻿using BinaryReaderEx;
-using StreamExtension;
+﻿using IMGBlibrary.Support;
 using System;
 using System.IO;
-using System.Linq;
 
-namespace IMGBlibrary
+namespace IMGBlibrary.Repack
 {
-    public class IMGBRepack
+    internal class IMGBRepack1Types
     {
-        public static void RepackIMGBType1(string imgHeaderBlockFile, string outImgbFile, string extractedIMGBdir)
-        {
-            var gtexPos = IMGBMethods.GetGTEXChunkPos(imgHeaderBlockFile);
-            if (gtexPos == 0)
-            {
-                Console.WriteLine("Unable to find GTEX chunk. skipped to next file.");
-                return;
-            }
-
-            var imgbVars = new IMGBVariables();
-            imgbVars.GtexStartVal = gtexPos;
-
-            IMGBMethods.GetImageInfo(imgHeaderBlockFile, imgbVars);
-
-            if (!IMGBVariables.GtexImgFormatValuesArray.Contains(imgbVars.GtexImgFormatValue))
-            {
-                Console.WriteLine("Detected unknown image format. skipped to next file.");
-                return;
-            }
-
-            if (!IMGBVariables.GtexImgTypeValuesArray.Contains(imgbVars.GtexImgTypeValue))
-            {
-                Console.WriteLine("Detected unknown image type. skipped to next file.");
-                return;
-            }
-
-
-            // Open the IMGB file and start extracting
-            // the images according to the image type
-            using (var imgbStream = new FileStream(outImgbFile, FileMode.Open, FileAccess.Write))
-            {
-
-                switch (imgbVars.GtexImgTypeValue)
-                {
-                    // Classic or Other type
-                    // Type 0 is Classic
-                    // Type 4 is Other
-                    case 0:
-                    case 4:
-                        RepackClassicType1(imgHeaderBlockFile, extractedIMGBdir, imgbVars, imgbStream);
-                        break;
-
-                    // Cubemap type 
-                    // Type 5 is for PS3
-                    case 1:
-                    case 5:
-                        RepackCubemapType1(imgHeaderBlockFile, extractedIMGBdir, imgbVars, imgbStream);
-                        break;
-
-                    // Stacked type (LR only)
-                    // PC version wpd may or may not use
-                    // this type.
-                    case 2:
-                        if (imgbVars.GtexImgMipCount > 1)
-                        {
-                            Console.WriteLine("Detected more than one mip in this stack type image. skipped to next file.");
-                            return;
-                        }
-                        RepackStackType1(imgHeaderBlockFile, extractedIMGBdir, imgbVars, imgbStream);
-                        break;
-                }
-            }
-        }
-
-
-
-        // Classic type
-        static void RepackClassicType1(string imgHeaderBlockFile, string extractedIMGBdir, IMGBVariables imgbVars, FileStream imgbStream)
+        #region Classic type
+        public static void RepackClassicType1(string imgHeaderBlockFile, string extractedIMGBdir, IMGBVariables imgbVars, FileStream imgbStream)
         {
             var imgHeaderBlockFileName = Path.GetFileName(imgHeaderBlockFile);
             var currentDDSfile = Path.Combine(extractedIMGBdir, imgHeaderBlockFileName + ".dds");
@@ -97,7 +29,7 @@ namespace IMGBlibrary
                     {
                         using (var ddsReader = new BinaryReader(ddsStream))
                         {
-                            IMGBMethods.GetExtImgInfo(ddsReader, imgbVars);
+                            SharedMethods.GetExtImgInfo(ddsReader, imgbVars);
                             var isValidImg = CheckExtImgInfo(imgbVars);
 
                             if (!isValidImg)
@@ -142,14 +74,15 @@ namespace IMGBlibrary
                 }
             }
         }
+        #endregion
 
 
-        // Cubemap type
-        static void RepackCubemapType1(string imgHeaderBlockFile, string extractedIMGBdir, IMGBVariables imgbVars, FileStream imgbStream)
+        #region Cubemap type
+        public static void RepackCubemapType1(string imgHeaderBlockFile, string extractedIMGBdir, IMGBVariables imgbVars, FileStream imgbStream)
         {
             var imgHeaderBlockFileName = Path.GetFileName(imgHeaderBlockFile);
 
-            var isMissingAnImg = IMGBMethods.CheckImgFilesBatch(6, extractedIMGBdir, imgHeaderBlockFileName, imgbVars);
+            var isMissingAnImg = SharedMethods.CheckImgFilesBatch(6, extractedIMGBdir, imgHeaderBlockFileName, imgbVars);
             if (isMissingAnImg)
             {
                 Console.WriteLine("Missing one or more cubemap type image files. skipped to next file.");
@@ -222,14 +155,15 @@ namespace IMGBlibrary
                 }
             }
         }
+        #endregion
 
 
-        // Stack type
-        static void RepackStackType1(string imgHeaderBlockFile, string extractedIMGBdir, IMGBVariables imgbVars, FileStream imgbStream)
+        #region Stack type
+        public static void RepackStackType1(string imgHeaderBlockFile, string extractedIMGBdir, IMGBVariables imgbVars, FileStream imgbStream)
         {
             var imgHeaderBlockFileName = Path.GetFileName(imgHeaderBlockFile);
 
-            var isMissingAnImg = IMGBMethods.CheckImgFilesBatch(imgbVars.GtexImgDepth, extractedIMGBdir, imgHeaderBlockFileName, imgbVars);
+            var isMissingAnImg = SharedMethods.CheckImgFilesBatch(imgbVars.GtexImgDepth, extractedIMGBdir, imgHeaderBlockFileName, imgbVars);
             if (isMissingAnImg)
             {
                 Console.WriteLine("Missing one or more stack type image files. skipped to next file.");
@@ -269,7 +203,7 @@ namespace IMGBlibrary
                         {
                             using (var ddsReader = new BinaryReader(ddsStream))
                             {
-                                IMGBMethods.GetExtImgInfo(ddsReader, imgbVars);
+                                SharedMethods.GetExtImgInfo(ddsReader, imgbVars);
 
                                 using (var tempDDSstream = new MemoryStream())
                                 {
@@ -292,11 +226,11 @@ namespace IMGBlibrary
                 }
             }
         }
+        #endregion
 
 
-
-        // Common methods
-        static bool CheckExtImgInfo(IMGBVariables imgbVars)
+        #region Common methods
+        private static bool CheckExtImgInfo(IMGBVariables imgbVars)
         {
             var isValidImg = true;
             if (imgbVars.GtexImgMipCount != imgbVars.OutImgMipCount)
@@ -327,7 +261,7 @@ namespace IMGBlibrary
         }
 
 
-        static bool CheckExtImgInfoBatch(int fileAmount, string extractImgbDir, string imgHeaderBlockFileName, IMGBVariables imgbVars)
+        private static bool CheckExtImgInfoBatch(int fileAmount, string extractImgbDir, string imgHeaderBlockFileName, IMGBVariables imgbVars)
         {
             var isAllValidImg = true;
             var imgFileCount = 1;
@@ -340,7 +274,7 @@ namespace IMGBlibrary
                 {
                     using (var ddsFileReader = new BinaryReader(ddsFileToCheck))
                     {
-                        IMGBMethods.GetExtImgInfo(ddsFileReader, imgbVars);
+                        SharedMethods.GetExtImgInfo(ddsFileReader, imgbVars);
                         var isValidImg = CheckExtImgInfo(imgbVars);
 
                         if (!isValidImg)
@@ -355,5 +289,6 @@ namespace IMGBlibrary
 
             return isAllValidImg;
         }
+        #endregion
     }
 }

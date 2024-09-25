@@ -1,83 +1,15 @@
-﻿using BinaryReaderEx;
-using BinaryWriterEx;
-using StreamExtension;
+﻿using IMGBlibrary.Support;
 using System;
 using System.IO;
-using System.Linq;
 
-namespace IMGBlibrary
+namespace IMGBlibrary.Repack
 {
-    public class IMGBRepack2
+    internal class IMGBRepack2Types
     {
-        public static void RepackIMGBType2(string imgHeaderBlockFile, string outImgbFile, string extractedIMGBdir)
+        #region Classic type
+        public static void RepackClassicType(string imgHeaderBlockFile, string extractedIMGBdir, IMGBVariables imgbVars, FileStream imgbStream)
         {
-            var gtexPos = IMGBMethods.GetGTEXChunkPos(imgHeaderBlockFile);
-            if (gtexPos == 0)
-            {
-                Console.WriteLine("Unable to find GTEX chunk. skipped to next file.");
-                return;
-            }
-
-            var imgbVars = new IMGBVariables();
-            imgbVars.GtexStartVal = gtexPos;
-
-            IMGBMethods.GetImageInfo(imgHeaderBlockFile, imgbVars);
-
-            if (!IMGBVariables.GtexImgFormatValuesArray.Contains(imgbVars.GtexImgFormatValue))
-            {
-                Console.WriteLine("Detected unknown image format. skipped to next file.");
-                return;
-            }
-
-            if (!IMGBVariables.GtexImgTypeValuesArray.Contains(imgbVars.GtexImgTypeValue))
-            {
-                Console.WriteLine("Detected unknown image type. skipped to next file.");
-                return;
-            }
-
-
-            // Open the IMGB file and start extracting
-            // the images according to the image type
-            using (var imgbStream = new FileStream(outImgbFile, FileMode.Append, FileAccess.Write))
-            {
-
-                switch (imgbVars.GtexImgTypeValue)
-                {
-                    // Classic or Other type
-                    // Type 0 is Classic
-                    // Type 4 is Other
-                    case 0:
-                    case 4:
-                        RepackClassicType2(imgHeaderBlockFile, extractedIMGBdir, imgbVars, imgbStream);
-                        break;
-
-                    // Cubemap type 
-                    case 1:
-                        RepackCubemapType2(imgHeaderBlockFile, extractedIMGBdir, imgbVars, imgbStream);
-                        break;
-
-                    // Stacked type (LR only)
-                    // PC version wpd may or may not use
-                    // this type.
-                    case 2:
-                        if (imgbVars.GtexImgMipCount > 1)
-                        {
-                            Console.WriteLine("Detected more than one mip in this stack type image. skipped to next file.");
-                            return;
-                        }
-                        RepackStackType2(imgHeaderBlockFile, extractedIMGBdir, imgbVars, imgbStream);
-                        break;
-                }
-            }
-        }
-
-
-
-        // Classic type
-        static void RepackClassicType2(string imgHeaderBlockFile, string extractedIMGBdir, IMGBVariables imgbVars, FileStream imgbStream)
-        {
-            var imgHeaderBlockFileName = Path.GetFileNameWithoutExtension(imgHeaderBlockFile);
-            var currentDDSfile = Path.Combine(extractedIMGBdir, imgHeaderBlockFileName + ".dds");
+            var currentDDSfile = Path.Combine(extractedIMGBdir, imgbVars.ImgHeaderBlockFileName + ".dds");
 
             if (!File.Exists(currentDDSfile))
             {
@@ -96,7 +28,7 @@ namespace IMGBlibrary
                     {
                         using (BinaryReader ddsReader = new BinaryReader(ddsStream))
                         {
-                            IMGBMethods.GetExtImgInfo(ddsReader, imgbVars);
+                            SharedMethods.GetExtImgInfo(ddsReader, imgbVars);
 
                             using (var tempDDSstream = new MemoryStream())
                             {
@@ -164,21 +96,20 @@ namespace IMGBlibrary
 
             Console.WriteLine("Repacked " + currentDDSfile + " data to IMGB.");
         }
+        #endregion
 
 
-        // Cubemap type
-        static void RepackCubemapType2(string imgHeaderBlockFile, string extractedIMGBdir, IMGBVariables imgbVars, FileStream imgbStream)
+        #region Cubemap type
+        public static void RepackCubemapType(string imgHeaderBlockFile, string extractedIMGBdir, IMGBVariables imgbVars, FileStream imgbStream)
         {
-            var imgHeaderBlockFileName = Path.GetFileNameWithoutExtension(imgHeaderBlockFile);
-
-            var isMissingAnImg = IMGBMethods.CheckImgFilesBatch(6, extractedIMGBdir, imgHeaderBlockFileName, imgbVars);
+            var isMissingAnImg = SharedMethods.CheckImgFilesBatch(6, extractedIMGBdir, imgbVars.ImgHeaderBlockFileName, imgbVars);
             if (isMissingAnImg)
             {
                 Console.WriteLine("Missing one or more cubemap type image files. skipped to next file.");
                 return;
             }
 
-            var isAllValidImg = CheckExtImgInfoType2(6, extractedIMGBdir, imgHeaderBlockFileName, imgbVars);
+            var isAllValidImg = CheckExtImgInfoType2(6, extractedIMGBdir, imgbVars.ImgHeaderBlockFileName, imgbVars);
             if (!isAllValidImg)
             {
                 Console.WriteLine("One or more image file info does not match with the first image file's info. skipped to next file.");
@@ -196,13 +127,13 @@ namespace IMGBlibrary
 
                     for (int c = 0; c < 6; c++)
                     {
-                        var currentDDSfile = Path.Combine(extractedIMGBdir, imgHeaderBlockFileName + imgbVars.GtexImgType + cubeMapCount + ".dds");
+                        var currentDDSfile = Path.Combine(extractedIMGBdir, imgbVars.ImgHeaderBlockFileName + imgbVars.GtexImgType + cubeMapCount + ".dds");
 
                         using (var ddsStream = new FileStream(currentDDSfile, FileMode.Open, FileAccess.Read))
                         {
                             using (var ddsReader = new BinaryReader(ddsStream))
                             {
-                                IMGBMethods.GetExtImgInfo(ddsReader, imgbVars);
+                                SharedMethods.GetExtImgInfo(ddsReader, imgbVars);
 
                                 using (var tempDDSstream = new MemoryStream())
                                 {
@@ -210,7 +141,7 @@ namespace IMGBlibrary
                                     ddsStream.Seek(128, SeekOrigin.Begin);
                                     ddsStream.CopyTo(tempDDSstream);
 
-                                    if (file1.Equals(true))
+                                    if (file1)
                                     {
                                         if (imgbVars.GtexImgMipCount < imgbVars.OutImgMipCount)
                                         {
@@ -238,7 +169,7 @@ namespace IMGBlibrary
                                     uint mipSize = 0;
                                     uint totalMipSize = 0;
 
-                                    if (file1.Equals(true))
+                                    if (file1)
                                     {
                                         mipWritingStart = imgbVars.GtexStartVal + 24;
                                     }
@@ -279,21 +210,20 @@ namespace IMGBlibrary
                 }
             }
         }
+        #endregion
 
 
-        // Stack type
-        static void RepackStackType2(string imgHeaderBlockFile, string extractedIMGBdir, IMGBVariables imgbVars, FileStream imgbStream)
+        #region Stack type
+        public static void RepackStackType(string imgHeaderBlockFile, string extractedIMGBdir, IMGBVariables imgbVars, FileStream imgbStream)
         {
-            var imgHeaderBlockFileName = Path.GetFileNameWithoutExtension(imgHeaderBlockFile);
-
-            var isMissingAnImg = IMGBMethods.CheckImgFilesBatch(imgbVars.GtexImgDepth, extractedIMGBdir, imgHeaderBlockFileName, imgbVars);
+            var isMissingAnImg = SharedMethods.CheckImgFilesBatch(imgbVars.GtexImgDepth, extractedIMGBdir, imgbVars.ImgHeaderBlockFileName, imgbVars);
             if (isMissingAnImg)
             {
                 Console.WriteLine("Missing one or more stack type image files. skipped to next file.");
                 return;
             }
 
-            var isAllValidImg = CheckExtImgInfoType2(imgbVars.GtexImgDepth, extractedIMGBdir, imgHeaderBlockFileName, imgbVars);
+            var isAllValidImg = CheckExtImgInfoType2(imgbVars.GtexImgDepth, extractedIMGBdir, imgbVars.ImgHeaderBlockFileName, imgbVars);
             if (!isAllValidImg)
             {
                 Console.WriteLine("One or more image file info does not match with the first image file's info. skipped to next file.");
@@ -310,13 +240,13 @@ namespace IMGBlibrary
 
                     for (int s = 0; s < imgbVars.GtexImgDepth; s++)
                     {
-                        var currentDDSfile = Path.Combine(extractedIMGBdir, imgHeaderBlockFileName + imgbVars.GtexImgType + stackCount + ".dds");
+                        var currentDDSfile = Path.Combine(extractedIMGBdir, imgbVars.ImgHeaderBlockFileName + imgbVars.GtexImgType + stackCount + ".dds");
 
                         using (var ddsStream = new FileStream(currentDDSfile, FileMode.Open, FileAccess.Read))
                         {
                             using (var ddsReader = new BinaryReader(ddsStream))
                             {
-                                IMGBMethods.GetExtImgInfo(ddsReader, imgbVars);
+                                SharedMethods.GetExtImgInfo(ddsReader, imgbVars);
 
                                 using (var tempDDSstream = new MemoryStream())
                                 {
@@ -325,7 +255,7 @@ namespace IMGBlibrary
 
                                     var currentImgSize = (uint)tempDDSstream.Length;
 
-                                    if (file1.Equals(true))
+                                    if (file1)
                                     {
                                         var stackStart = (uint)imgbStream.Length;
                                         var totalStackSize = currentImgSize * imgbVars.GtexImgDepth;
@@ -357,11 +287,11 @@ namespace IMGBlibrary
                 }
             }
         }
+        #endregion
 
 
-
-        // Common methods
-        static void ExtraMipsOffsets(IMGBVariables imgbVars, FileStream gtexStream, BinaryWriter gtexWriter)
+        #region Common methods
+        private static void ExtraMipsOffsets(IMGBVariables imgbVars, FileStream gtexStream, BinaryWriter gtexWriter)
         {
             var extraMipsVar = imgbVars.OutImgMipCount - imgbVars.GtexImgMipCount;
 
@@ -385,21 +315,21 @@ namespace IMGBlibrary
         }
 
 
-        static void ComputeMipSizes(IMGBVariables imgbVars, ref uint mipSizeVar, ref uint mipStartVar, FileStream streamName)
+        private static void ComputeMipSizes(IMGBVariables imgbVars, ref uint mipSizeVar, ref uint mipStartVar, FileStream imgbStream)
         {
             switch (imgbVars.OutImgFormatValue)
             {
                 case 3:    // R8G8B8A8
                 case 4:    // R8G8B8A8 with Mips
                     mipSizeVar = imgbVars.OutImgHeight * imgbVars.OutImgWidth * 4;
-                    mipStartVar = (uint)streamName.Length;
+                    mipStartVar = (uint)imgbStream.Length;
                     break;
 
                 case 24:   // DXT1
                     imgbVars.OutImgHeight += ((4 - imgbVars.OutImgHeight % 4) % 4);
                     imgbVars.OutImgWidth += ((4 - imgbVars.OutImgWidth % 4) % 4);
                     mipSizeVar = imgbVars.OutImgHeight * imgbVars.OutImgWidth * 4 / 8;
-                    mipStartVar = (uint)streamName.Length;
+                    mipStartVar = (uint)imgbStream.Length;
                     break;
 
                 case 25:   // DXT 3 or
@@ -407,15 +337,15 @@ namespace IMGBlibrary
                     imgbVars.OutImgHeight += ((4 - imgbVars.OutImgHeight % 4) % 4);
                     imgbVars.OutImgWidth += ((4 - imgbVars.OutImgWidth % 4) % 4);
                     mipSizeVar = imgbVars.OutImgHeight * imgbVars.OutImgWidth * 4 / 4;
-                    mipStartVar = (uint)streamName.Length;
+                    mipStartVar = (uint)imgbStream.Length;
                     break;
             }
         }
 
 
-        static void NextMipHeightWidth(IMGBVariables imgbVars, ref uint nextMipHeight, ref uint nextMipWidth)
+        private static void NextMipHeightWidth(IMGBVariables imgbVars, ref uint nextMipHeight, ref uint nextMipWidth)
         {
-            if (!imgbVars.OutImgFormatValue.Equals(3))
+            if (imgbVars.OutImgFormatValue != 3)
             {
                 nextMipHeight = imgbVars.OutImgHeight / 2;
                 imgbVars.OutImgHeight = nextMipHeight;
@@ -432,9 +362,9 @@ namespace IMGBlibrary
                 }
             }
 
-            if (imgbVars.OutImgFormatValue.Equals(3))
+            if (imgbVars.OutImgFormatValue == 3)
             {
-                if (imgbVars.OutImgHeight.Equals(1))
+                if (imgbVars.OutImgHeight == 1)
                 {
                     nextMipHeight = 1;
                 }
@@ -444,7 +374,7 @@ namespace IMGBlibrary
                 }
                 imgbVars.OutImgHeight = nextMipHeight;
 
-                if (imgbVars.OutImgWidth.Equals(1))
+                if (imgbVars.OutImgWidth == 1)
                 {
                     nextMipWidth = 1;
                 }
@@ -457,7 +387,7 @@ namespace IMGBlibrary
         }
 
 
-        static bool CheckExtImgInfoType2(int fileAmount, string extractImgbDir, string imgHeaderBlockFileName, IMGBVariables imgbVars)
+        private static bool CheckExtImgInfoType2(int fileAmount, string extractImgbDir, string imgHeaderBlockFileName, IMGBVariables imgbVars)
         {
             var isAllValidImg = true;
             var imgFileCount = 1;
@@ -474,7 +404,7 @@ namespace IMGBlibrary
                 {
                     using (var ddsFileReader = new BinaryReader(ddsFileToCheck))
                     {
-                        IMGBMethods.GetExtImgInfo(ddsFileReader, imgbVars);
+                        SharedMethods.GetExtImgInfo(ddsFileReader, imgbVars);
 
                         if (imgbVars.OutImgFormatValue == 0)
                         {
@@ -522,7 +452,7 @@ namespace IMGBlibrary
         }
 
 
-        static void PadNullsForLastMips(FileStream imgbStream, uint mipSize)
+        private static void PadNullsForLastMips(FileStream imgbStream, uint mipSize)
         {
             if (mipSize < 16)
             {
@@ -533,5 +463,6 @@ namespace IMGBlibrary
                 }
             }
         }
+        #endregion
     }
 }

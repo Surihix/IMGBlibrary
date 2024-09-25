@@ -41,15 +41,19 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="IMGBlibrary\DDSMethods.cs" />
-    <Compile Include="IMGBlibrary\IMGBMethods.cs" />
-    <Compile Include="IMGBlibrary\IMGBRepack.cs" />
-    <Compile Include="IMGBlibrary\IMGBRepack2.cs" />
-    <Compile Include="IMGBlibrary\IMGBUnpack.cs" />
-    <Compile Include="IMGBlibrary\IMGBVariables.cs" />
-    <Compile Include="IMGBlibrary\SupportClasses\ReaderHelpers.cs" />
-    <Compile Include="IMGBlibrary\SupportClasses\StreamExtension.cs" />
-    <Compile Include="IMGBlibrary\SupportClasses\WriterHelpers.cs" />
+    <Compile Include="IMGBlibrary\Extensions\BinaryReaderHelpers.cs" />
+    <Compile Include="IMGBlibrary\Extensions\BinaryWriterHelpers.cs" />
+    <Compile Include="IMGBlibrary\Extensions\StreamHelpers.cs" />
+    <Compile Include="IMGBlibrary\Repack\IMGBRepack1.cs" />
+    <Compile Include="IMGBlibrary\Repack\IMGBRepack1Types.cs" />
+    <Compile Include="IMGBlibrary\Repack\IMGBRepack2.cs" />
+    <Compile Include="IMGBlibrary\Repack\IMGBRepack2Types.cs" />
+    <Compile Include="IMGBlibrary\Support\IMGBEnums.cs" />
+    <Compile Include="IMGBlibrary\Support\IMGBVariables.cs" />
+    <Compile Include="IMGBlibrary\Support\SharedMethods.cs" />
+    <Compile Include="IMGBlibrary\Unpack\DDSMethods.cs" />
+    <Compile Include="IMGBlibrary\Unpack\IMGBUnpack.cs" />
+    <Compile Include="IMGBlibrary\Unpack\IMGBUnpackTypes.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

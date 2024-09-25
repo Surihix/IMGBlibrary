@@ -1,8 +1,8 @@
-﻿using BinaryWriterEx;
+﻿using IMGBlibrary.Support;
 using System;
 using System.IO;
 
-namespace IMGBlibrary
+namespace IMGBlibrary.Unpack
 {
     public class DDSMethods
     {
