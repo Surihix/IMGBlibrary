@@ -1,6 +1,5 @@
 ﻿using System;
 using System.IO;
-using System.Text;
 
 internal static class BinaryReaderHelpers
 {
@@ -26,17 +25,5 @@ internal static class BinaryReaderHelpers
         {
             Array.Reverse(readValueBuffer);
         }
-    }
-
-
-    public static string ReadStringTillNull(this BinaryReader reader)
-    {
-        var sb = new StringBuilder();
-        char chars;
-        while ((chars = reader.ReadChar()) != default)
-        {
-            sb.Append(chars);
-        }
-        return sb.ToString();
     }
 }

@@ -5,10 +5,18 @@ using System.Linq;
 namespace IMGBlibrary.Unpack
 {
     /// <summary>
-    /// Use for unpacking image files.
+    /// Provides a method for unpacking image files from the FINAL FANTASY XIII trilogy.
     /// </summary>
     public class IMGBUnpack
     {
+        /// <summary>
+        /// Use for unpacking image files.
+        /// </summary>
+        /// <param name="imgHeaderBlockFile">Header Block file path. should have the GTEX chunk.</param>
+        /// <param name="inImgbFile">IMGB file path. the file has to be present.</param>
+        /// <param name="extractIMGBdir">Path to the directory where the image files should be unpacked.</param>
+        /// <param name="imgbPlatform">Platform of the header block file.</param>
+        /// <param name="showLog">Determine whether to show more messages related to this method's process.</param>
         public static void UnpackIMGB(string imgHeaderBlockFile, string inImgbFile, string extractIMGBdir, IMGBEnums.Platforms imgbPlatform, bool showLog)
         {
             var imgbVars = new IMGBVariables

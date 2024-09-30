@@ -4,7 +4,7 @@ using System.IO;
 
 namespace IMGBlibrary.Unpack
 {
-    public class DDSMethods
+    internal class DDSMethods
     {
         public static void BaseHeader(FileStream ddsFileVar, BinaryWriter ddsWriterVar, IMGBVariables imgbVars)
         {

@@ -1,6 +1,6 @@
 ﻿namespace IMGBlibrary.Support
 {
-    public class IMGBVariables
+    internal class IMGBVariables
     {
         #region Process variables
         public bool ShowLog { get; set; }
