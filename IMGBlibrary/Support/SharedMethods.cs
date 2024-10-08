@@ -1,12 +1,20 @@
-﻿using BinaryReaderEx;
-using System;
+﻿using System;
 using System.IO;
 using System.Text;
 
-namespace IMGBlibrary
+namespace IMGBlibrary.Support
 {
-    public class IMGBMethods
+    internal class SharedMethods
     {
+        public static void DisplayLogMessage(string message, bool showMsg)
+        {
+            if (showMsg)
+            {
+                Console.WriteLine(message);
+            }
+        }
+
+
         public static uint GetGTEXChunkPos(string inImgHeaderBlockFile)
         {
             uint gtexPos = 0;
@@ -77,17 +85,16 @@ namespace IMGBlibrary
             imgbVars.OutImgMipCount = ddsReader.ReadUInt32();
 
             ddsReader.BaseStream.Position = 84;
-            var getImgFormat = ddsReader.ReadChars(4);
-            var imgFormatString = string.Join("", getImgFormat).Replace("\0", "");
+            var imgFormatString = Encoding.ASCII.GetString(ddsReader.ReadBytes(4)).Replace("\0", "");
 
             switch (imgFormatString)
             {
                 case "":
-                    if (imgbVars.GtexImgFormatValue == 3)
+                    if (imgbVars.OutImgMipCount > 1)
                     {
                         imgbVars.OutImgFormatValue = 3;
                     }
-                    if (imgbVars.GtexImgFormatValue == 4)
+                    else
                     {
                         imgbVars.OutImgFormatValue = 4;
                     }

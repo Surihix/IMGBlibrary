@@ -1,10 +1,10 @@
-﻿using BinaryWriterEx;
+﻿using IMGBlibrary.Support;
 using System;
 using System.IO;
 
-namespace IMGBlibrary
+namespace IMGBlibrary.Unpack
 {
-    public class DDSMethods
+    internal class DDSMethods
     {
         public static void BaseHeader(FileStream ddsFileVar, BinaryWriter ddsWriterVar, IMGBVariables imgbVars)
         {
