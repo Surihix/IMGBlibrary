@@ -17,8 +17,9 @@ namespace IMGBlibrary.Repack
         /// <param name="imgHeaderBlockFileName">Name of the header block file. this should be the original file's name.</param>
         /// <param name="outImgbFile">IMGB file path. not mandatory for the file to be present.</param>
         /// <param name="extractedIMGBdir">Path to the directory where the image files are present.</param>
+        /// <param name="imgbPlatform">Platform of the header block file.</param>
         /// <param name="showLog">Determine whether to show more messages related to this method's process.</param>
-        public static void RepackIMGBType2(string tmpImgHeaderBlockFile, string imgHeaderBlockFileName, string outImgbFile, string extractedIMGBdir, bool showLog)
+        public static void RepackIMGBType2(string tmpImgHeaderBlockFile, string imgHeaderBlockFileName, string outImgbFile, string extractedIMGBdir, IMGBEnums.Platforms imgbPlatform, bool showLog)
         {
             var imgbVars = new IMGBVariables
             {
@@ -44,6 +45,18 @@ namespace IMGBlibrary.Repack
             if (!IMGBVariables.GtexImgTypeValues.Contains(imgbVars.GtexImgTypeValue))
             {
                 SharedMethods.DisplayLogMessage("Detected unknown image type. skipped to next file.", showLog);
+                return;
+            }
+
+            if (imgbPlatform == IMGBEnums.Platforms.ps3)
+            {
+                SharedMethods.DisplayLogMessage("Detected ps3 version image file. imgb repacking is not supported.", showLog);
+                return;
+            }
+
+            if (imgbPlatform == IMGBEnums.Platforms.x360)
+            {
+                SharedMethods.DisplayLogMessage("Detected xbox 360 version image file. imgb repacking is not supported.", showLog);
                 return;
             }
 
