@@ -3,6 +3,11 @@ This C# reference library contains functions for dealing with different types of
 
 This particular version is designed to be used with .net framework projects. you can get the .net core version of this library from [here](https://github.com/Surihix/IMGBlibrary_Core).
 
+# Sample Images
+Images are property of Square Enix. they are displayed here just for showing off the results of this library. 
+<br>![Image Text](sample_images/sample_img_1.png) 
+<br><br>![Image Text](sample_images/sample_img_2.png)
+
 ### Important
 - Repacking is supported only for the PC version IMGB files.
 - This library does not support unswizzling the Xbox 360 version mip data. the unpacking function will extract the mips without unswizzling them.
