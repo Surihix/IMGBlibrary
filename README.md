@@ -4,7 +4,8 @@ This C# reference library contains functions for dealing with different types of
 This particular version is designed to be used with .net framework projects. you can get the .net core version of this library from [here](https://github.com/Surihix/IMGBlibrary_Core).
 
 # Sample Images
-Images are property of Square Enix. they are displayed here just for showing off the results of this library. 
+**Legal bit:** Images linked below are property of Square Enix pvt limited. they are displayed here just for showing off the results of this library.
+
 <br>![Image Text](sample_images/sample_img_1.png) 
 <br><br>![Image Text](sample_images/sample_img_2.png)
 
