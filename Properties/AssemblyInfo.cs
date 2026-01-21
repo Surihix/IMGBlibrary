@@ -10,7 +10,7 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
 [assembly: AssemblyProduct("IMGBlibrary")]
-[assembly: AssemblyCopyright("Copyright © Surihix 2025")]
+[assembly: AssemblyCopyright("Copyright © Surihix 2026")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
