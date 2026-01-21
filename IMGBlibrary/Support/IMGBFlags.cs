@@ -1,9 +1,9 @@
 ﻿namespace IMGBlibrary.Support
 {
     /// <summary>
-    /// Provides enums for accessing functions from this library.
+    /// Provides flags for accessing functions from this library.
     /// </summary>
-    public class IMGBEnums
+    public class IMGBFlags
     {
         /// <summary>
         /// Use for determing the extension of the image header block file.

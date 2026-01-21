@@ -1,33 +1,42 @@
 ﻿using System;
 using System.IO;
 
+/// <summary>
+/// Provides few methods for Stream class.
+/// </summary>
 internal static class StreamHelpers
 {
-    public static void ExCopyTo(this Stream source, Stream destination, long offset, long count, int bufferSize = 81920)
+    /// <summary>
+    /// Reads a specific amount of bytes from the current stream 
+    /// and writes them to another stream.
+    /// </summary>
+    /// <param name="outStream">The stream to which the contents of the current stream will be copied.</param>
+    /// <param name="size">The amount of bytes to read.</param>
+    /// <param name="showProgress">Show the amount of data read during the process in percentage.</param>
+    public static void CopyStreamTo(this Stream inStream, Stream outStream, long size, bool showProgress)
     {
-        var returnAddress = source.Position;
-        source.Seek(offset, SeekOrigin.Begin);
+        int bufferSize = 81920;
+        long amountRemaining = size;
+        var copyArray = new byte[bufferSize];
+        long amountCopied = 0;
+        decimal currentAmount;
 
-        var bytesRemaining = count;
-        while (bytesRemaining > 0)
+        while (amountRemaining > 0)
         {
-            var readSize = Math.Min(bufferSize, bytesRemaining);
-            var buffer = new byte[readSize];
-            _ = source.Read(buffer, 0, (int)readSize);
+            long readAmount = Math.Min(bufferSize, amountRemaining);
 
-            destination.Write(buffer, 0, (int)readSize);
-            bytesRemaining -= readSize;
-        }
+            _ = inStream.Read(copyArray, 0, (int)readAmount);
+            outStream.Write(copyArray, 0, (int)readAmount);
 
-        source.Seek(returnAddress, SeekOrigin.Begin);
-    }
+            amountRemaining -= readAmount;
 
+            amountCopied += readAmount;
 
-    public static void PadNull(this Stream stream, int padAmount)
-    {
-        for (int p = 0; p < padAmount; p++)
-        {
-            stream.WriteByte(0);
+            if (showProgress)
+            {
+                currentAmount = Math.Round(((decimal)amountCopied / size) * 100);
+                Console.Write("\r{0}", "Copied " + currentAmount + "%");
+            }
         }
     }
 }

@@ -1,6 +1,5 @@
 ﻿using IMGBlibrary.Support;
 using System.IO;
-using System.Linq;
 
 namespace IMGBlibrary.Repack
 {
@@ -17,79 +16,53 @@ namespace IMGBlibrary.Repack
         /// <param name="outImgbFile">IMGB file path. the file has to be present.</param>
         /// <param name="extractedIMGBdir">Path to the directory where the image files are present.</param>
         /// <param name="imgbPlatform">Platform of the header block file.</param>
-        /// <param name="showLog">Determine whether to show more messages related to this method's process.</param>
-        public static void RepackIMGBType1(string imgHeaderBlockFile, string outImgbFile, string extractedIMGBdir, IMGBEnums.Platforms imgbPlatform, bool showLog)
+        public static void RepackIMGBType1(string imgHeaderBlockFile, string outImgbFile, string extractedIMGBdir, IMGBFlags.Platforms imgbPlatform)
         {
-            var imgbVars = new IMGBVariables
+            if (imgbPlatform == IMGBFlags.Platforms.ps3)
             {
-                ShowLog = showLog,
-                GtexStartVal = SharedMethods.GetGTEXChunkPos(imgHeaderBlockFile)
-            };
-
-            if (imgbVars.GtexStartVal == 0)
-            {
-                SharedMethods.DisplayLogMessage("Unable to find GTEX chunk. skipped to next file.", showLog);
+                SharedMethods.DisplayLogMessage("Detected ps3 version image file. image repacking is not supported.", true);
                 return;
             }
 
-            SharedMethods.GetImageInfo(imgHeaderBlockFile, imgbVars);
-
-            if (!IMGBVariables.GtexImgFormatValues.Contains(imgbVars.GtexImgFormatValue))
+            if (imgbPlatform == IMGBFlags.Platforms.x360)
             {
-                SharedMethods.DisplayLogMessage("Detected unknown image format. skipped to next file.", showLog);
+                SharedMethods.DisplayLogMessage("Detected xbox 360 version image file. image repacking is not supported.", true);
                 return;
             }
 
-            if (!IMGBVariables.GtexImgTypeValues.Contains(imgbVars.GtexImgTypeValue))
+            var gtex = SharedMethods.GetGTEXInfo(imgHeaderBlockFile);
+
+            if (!gtex.IsValid)
             {
-                SharedMethods.DisplayLogMessage("Detected unknown image type. skipped to next file.", showLog);
+                SharedMethods.DisplayLogMessage("Unable to find GTEX chunk. skipped image repacking.", true);
                 return;
             }
 
-            if (imgbPlatform == IMGBEnums.Platforms.ps3)
+            if (!SharedMethods.CheckGTEXFormatAndType(gtex))
             {
-                SharedMethods.DisplayLogMessage("Detected ps3 version image file. imgb repacking is not supported.", showLog);
+                SharedMethods.DisplayLogMessage("Detected unknown texture format or texture type. skipped image repacking.", true);
                 return;
             }
-
-            if (imgbPlatform == IMGBEnums.Platforms.x360)
-            {
-                SharedMethods.DisplayLogMessage("Detected xbox 360 version image file. imgb repacking is not supported.", showLog);
-                return;
-            }
-
 
             // Open the IMGB file and start repacking
             // the images according to the image type
             using (var imgbStream = new FileStream(outImgbFile, FileMode.Open, FileAccess.Write))
             {
-
-                switch (imgbVars.GtexImgTypeValue)
+                switch (gtex.Type)
                 {
-                    // Classic or Other type
-                    // Type 0 is Classic
-                    // Type 4 is Other
+                    // Classic type
                     case 0:
-                    case 4:
-                        IMGBRepack1Types.RepackClassicType1(imgHeaderBlockFile, extractedIMGBdir, imgbVars, imgbStream);
+                        IMGBRepack1Types.RepackClassic(imgHeaderBlockFile, extractedIMGBdir, gtex, imgbStream);
                         break;
 
                     // Cubemap type 
-                    // Type 5 is for PS3
                     case 1:
-                        IMGBRepack1Types.RepackCubemapType1(imgHeaderBlockFile, extractedIMGBdir, imgbVars, imgbStream);
+                        IMGBRepack1Types.RepackCubemap(imgHeaderBlockFile, extractedIMGBdir, gtex, imgbStream);
                         break;
 
-                    // Stacked type (LR only)
-                    // PC version wpd may or may not use
-                    // this type.
+                    // Volumemap type
                     case 2:
-                        if (imgbVars.GtexImgMipCount > 1)
-                        {
-                            SharedMethods.DisplayLogMessage("Detected more than one mip in this stack type image. skipped to next file.", showLog);
-                            return;
-                        }
-                        IMGBRepack1Types.RepackStackType1(imgHeaderBlockFile, extractedIMGBdir, imgbVars, imgbStream);
+                        IMGBRepack1Types.RepackVolumemap(imgHeaderBlockFile, extractedIMGBdir, gtex, imgbStream);
                         break;
                 }
             }

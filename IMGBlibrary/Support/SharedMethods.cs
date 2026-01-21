@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Linq;
 using System.Text;
 
 namespace IMGBlibrary.Support
@@ -14,129 +15,86 @@ namespace IMGBlibrary.Support
             }
         }
 
-
-        public static uint GetGTEXChunkPos(string inImgHeaderBlockFile)
+        public static GTEX GetGTEXInfo(string inImgHeaderBlockFile)
         {
-            uint gtexPos = 0;
-            var gtexChunkString = "GTEX";
-            var gtexChunkStringArray = new byte[4];
-            var imgHeaderBlockFileData = File.ReadAllBytes(inImgHeaderBlockFile);
-
-            for (int g = 0; g < imgHeaderBlockFileData.Length; g++)
+            var gtex = new GTEX()
             {
-                if ((char)imgHeaderBlockFileData[g] == gtexChunkString[0])
-                {
-                    Buffer.BlockCopy(imgHeaderBlockFileData, g, gtexChunkStringArray, 0, 4);
-                    var gtex = Encoding.ASCII.GetString(gtexChunkStringArray, 0, 4);
+                ImageName = Path.GetFileNameWithoutExtension(inImgHeaderBlockFile)
+            };
 
-                    if (gtex == gtexChunkString)
+            var offsetFound = GetGTEXChunkOffset(inImgHeaderBlockFile);
+
+            if (offsetFound == -1)
+            {
+                gtex.IsValid = false;
+                return gtex;
+            }
+
+            gtex.IsValid = true;
+            gtex.GTEXOffset = (uint)offsetFound;
+
+            GetGTEXData(inImgHeaderBlockFile, gtex);
+
+            return gtex;
+        }
+
+        private static int GetGTEXChunkOffset(string inImgHeaderBlockFile)
+        {
+            int offset = -1;
+            const string gtexChunkMagic = "GTEX";
+
+            var readBuffer = new byte[4];
+            var headerBlockBuffer = File.ReadAllBytes(inImgHeaderBlockFile);
+            var limitPos = headerBlockBuffer.Length - 3;
+
+            for (int i = 0; i < headerBlockBuffer.Length; i++)
+            {
+                if (i != limitPos)
+                {
+                    Array.ConstrainedCopy(headerBlockBuffer, i, readBuffer, 0, 4);
+
+                    if (Encoding.ASCII.GetString(readBuffer) == gtexChunkMagic)
                     {
-                        gtexPos = (uint)g;
+                        offset = i;
                         break;
                     }
                 }
             }
 
-            return gtexPos;
+            return offset;
         }
 
-
-        public static void GetImageInfo(string inImgHeaderBlockFile, IMGBVariables imgbVars)
+        private static void GetGTEXData(string inImgHeaderBlockFile, GTEX gtex)
         {
-            using (var gtexStream = new FileStream(inImgHeaderBlockFile, FileMode.Open, FileAccess.Read))
+            using (var gtexReader = new BinaryReader(File.Open(inImgHeaderBlockFile, FileMode.Open, FileAccess.Read)))
             {
-                using (var gtexReader = new BinaryReader(gtexStream))
-                {
-                    gtexReader.BaseStream.Position = imgbVars.GtexStartVal + 6;
-                    imgbVars.GtexImgFormatValue = gtexReader.ReadByte();
-                    imgbVars.GtexImgMipCount = gtexReader.ReadByte();
-
-                    imgbVars.GtexImgMipCount = imgbVars.GtexImgMipCount.Equals(0) ? (byte)1 : imgbVars.GtexImgMipCount;
-
-                    gtexReader.BaseStream.Position = imgbVars.GtexStartVal + 9;
-                    imgbVars.GtexImgTypeValue = gtexReader.ReadByte();
-                    imgbVars.GtexImgWidth = gtexReader.ReadBytesUInt16(true);
-                    imgbVars.GtexImgHeight = gtexReader.ReadBytesUInt16(true);
-                    imgbVars.GtexImgDepth = gtexReader.ReadBytesUInt16(true);
-
-                    switch (imgbVars.GtexImgTypeValue)
-                    {
-                        case 1:
-                        case 5:
-                            imgbVars.GtexImgType = "_cbmap_";
-                            break;
-
-                        case 2:
-                            imgbVars.GtexImgType = "_stack_";
-                            break;
-                    }
-                }
+                _ = gtexReader.BaseStream.Position = gtex.GTEXOffset + 4;
+                gtex.Version = gtexReader.ReadByte();
+                gtex.UnkFlag = gtexReader.ReadByte();
+                gtex.Format = gtexReader.ReadByte();
+                gtex.MipCount = gtexReader.ReadByte();
+                gtex.UnkFlag2 = gtexReader.ReadByte();
+                gtex.Type = gtexReader.ReadByte();
+                gtex.Width = gtexReader.ReadBytesUInt16(true);
+                gtex.Height = gtexReader.ReadBytesUInt16(true);
+                gtex.Depth = gtexReader.ReadBytesUInt16(true);
+                gtex.MipInfoTableOffset = gtexReader.ReadBytesUInt32(true);
             }
         }
 
 
-        public static void GetExtImgInfo(BinaryReader ddsReader, IMGBVariables imgbVars)
+        private static readonly byte[] GTEXFormatValues = new byte[] { 3, 4, 24, 25, 26 };
+        private static readonly byte[] GTEXTypeValues = new byte[] { 0, 4, 1, 5, 2 };
+        public static bool CheckGTEXFormatAndType(GTEX gtex)
         {
-            ddsReader.BaseStream.Position = 12;
-            imgbVars.OutImgHeight = ddsReader.ReadUInt32();
-            imgbVars.OutImgWidth = ddsReader.ReadUInt32();
-
-            ddsReader.BaseStream.Position = 28;
-            imgbVars.OutImgMipCount = ddsReader.ReadUInt32();
-
-            ddsReader.BaseStream.Position = 84;
-            var imgFormatString = Encoding.ASCII.GetString(ddsReader.ReadBytes(4)).Replace("\0", "");
-
-            switch (imgFormatString)
+            if (GTEXFormatValues.Contains(gtex.Format) && GTEXTypeValues.Contains(gtex.Type))
             {
-                case "":
-                    if (imgbVars.OutImgMipCount > 1)
-                    {
-                        imgbVars.OutImgFormatValue = 3;
-                    }
-                    else
-                    {
-                        imgbVars.OutImgFormatValue = 4;
-                    }
-                    break;
-
-                case "DXT1":
-                    imgbVars.OutImgFormatValue = 24;
-                    break;
-
-                case "DXT3":
-                    imgbVars.OutImgFormatValue = 25;
-                    break;
-
-                case "DXT5":
-                    imgbVars.OutImgFormatValue = 26;
-                    break;
-
-                default:
-                    imgbVars.OutImgFormatValue = 0;
-                    break;
+                return true;
             }
-        }
-
-
-        public static bool CheckImgFilesBatch(int fileAmount, string extractImgbDir, string imgHeaderBlockFileName, IMGBVariables imgbVars)
-        {
-            var isMissingAnImg = false;
-            var imgFileCount = 1;
-
-            for (int i = 0; i < fileAmount; i++)
+            else
             {
-                var fileToCheck = Path.Combine(extractImgbDir, imgHeaderBlockFileName + imgbVars.GtexImgType + imgFileCount + ".dds");
-
-                if (!File.Exists(fileToCheck))
-                {
-                    isMissingAnImg = true;
-                }
-
-                imgFileCount++;
+                return false;
             }
-
-            return isMissingAnImg;
         }
     }
 }

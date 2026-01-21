@@ -1,5 +1,5 @@
 ﻿using IMGBlibrary.Support;
-using System;
+using System.Collections.Generic;
 using System.IO;
 
 namespace IMGBlibrary.Repack
@@ -7,287 +7,240 @@ namespace IMGBlibrary.Repack
     internal class IMGBRepack1Types
     {
         #region Classic type
-        public static void RepackClassicType1(string imgHeaderBlockFile, string extractedIMGBdir, IMGBVariables imgbVars, FileStream imgbStream)
+        public static void RepackClassic(string imgHeaderBlockFile, string extractedIMGBdir, GTEX gtex, FileStream imgbStream)
         {
-            var imgHeaderBlockFileName = Path.GetFileName(imgHeaderBlockFile);
-            var currentDDSfile = Path.Combine(extractedIMGBdir, imgHeaderBlockFileName + ".dds");
+            var currentDDSfile = Path.Combine(extractedIMGBdir, gtex.ImageName + ".dds");
 
             if (!File.Exists(currentDDSfile))
             {
-                Console.WriteLine("Missing image file. skipped to next file.");
+                SharedMethods.DisplayLogMessage("Missing image file. skipped repacking image." + currentDDSfile, true);
                 return;
             }
 
-            using (var gtexStream = new FileStream(imgHeaderBlockFile, FileMode.Open, FileAccess.Read))
+            var gtexOffsettable = new List<(uint, uint)>();
+
+            using (var gtexReader = new BinaryReader(File.Open(imgHeaderBlockFile, FileMode.Open, FileAccess.Read)))
             {
-                using (var gtexReader = new BinaryReader(gtexStream))
+                gtexReader.BaseStream.Position = gtex.GTEXOffset + gtex.MipInfoTableOffset;
+
+                for (int i = 0; i < gtex.MipCount; i++)
                 {
-                    gtexReader.BaseStream.Position = imgbVars.GtexStartVal + 16;
-                    var mipOffsetsStartPos = gtexReader.ReadBytesUInt32(true);
+                    var mipStart = gtexReader.ReadBytesUInt32(true);
+                    var mipSize = gtexReader.ReadBytesUInt32(true);
 
-                    using (var ddsStream = new FileStream(currentDDSfile, FileMode.Open, FileAccess.Read))
-                    {
-                        using (var ddsReader = new BinaryReader(ddsStream))
-                        {
-                            SharedMethods.GetExtImgInfo(ddsReader, imgbVars);
-                            var isValidImg = CheckExtImgInfo(imgbVars);
-
-                            if (!isValidImg)
-                            {
-                                return;
-                            }
-
-                            using (var tempDDSstream = new MemoryStream())
-                            {
-                                ddsStream.Seek(128, SeekOrigin.Begin);
-                                ddsStream.CopyTo(tempDDSstream);
-
-
-                                uint mipStart = 0;
-                                uint nextMipStart = 0;
-                                uint totalMipSize = 0;
-                                uint readStart = imgbVars.GtexStartVal + mipOffsetsStartPos;
-
-                                for (int m = 0; m < imgbVars.GtexImgMipCount; m++)
-                                {
-                                    gtexReader.BaseStream.Position = readStart;
-                                    var copyMipAt = gtexReader.ReadBytesUInt32(true);
-
-                                    gtexReader.BaseStream.Position = readStart + 4;
-                                    var mipSize = gtexReader.ReadBytesUInt32(true);
-
-                                    imgbStream.Seek(copyMipAt, SeekOrigin.Begin);
-                                    tempDDSstream.ExCopyTo(imgbStream, mipStart, mipSize);
-
-                                    gtexReader.BaseStream.Position = readStart + 8;
-                                    readStart = (uint)gtexReader.BaseStream.Position;
-
-                                    nextMipStart = mipSize + totalMipSize;
-                                    mipStart = nextMipStart;
-                                    totalMipSize = nextMipStart;
-                                }
-                            }
-                        }
-                    }
-
-                    Console.WriteLine("Repacked " + currentDDSfile + " data to IMGB.");
+                    gtexOffsettable.Add((mipStart, mipSize));
                 }
             }
+
+            if (!CheckDDSImage(currentDDSfile, gtex))
+            {
+                return;
+            }
+
+            using (var imgbWriter = new BinaryWriter(imgbStream))
+            {
+                using (var ddsReader = new BinaryReader(File.Open(currentDDSfile, FileMode.Open, FileAccess.Read)))
+                {
+                    _ = ddsReader.BaseStream.Position += 128;
+
+                    for (int i = 0; i < gtex.MipCount; i++)
+                    {
+                        _ = imgbWriter.BaseStream.Seek(gtexOffsettable[i].Item1, SeekOrigin.Begin);
+
+                        var currentMipData = ddsReader.ReadBytes((int)gtexOffsettable[i].Item2);
+                        imgbWriter.Write(currentMipData);
+                    }
+                }
+            }
+
+            SharedMethods.DisplayLogMessage("Repacked " + currentDDSfile, true);
         }
         #endregion
 
 
         #region Cubemap type
-        public static void RepackCubemapType1(string imgHeaderBlockFile, string extractedIMGBdir, IMGBVariables imgbVars, FileStream imgbStream)
+        public static void RepackCubemap(string imgHeaderBlockFile, string extractedIMGBdir, GTEX gtex, FileStream imgbStream)
         {
-            var imgHeaderBlockFileName = Path.GetFileName(imgHeaderBlockFile);
+            var currentDDSfile = Path.Combine(extractedIMGBdir, gtex.ImageName + "_cbmap.dds");
 
-            var isMissingAnImg = SharedMethods.CheckImgFilesBatch(6, extractedIMGBdir, imgHeaderBlockFileName, imgbVars);
-            if (isMissingAnImg)
+            if (!File.Exists(currentDDSfile))
             {
-                Console.WriteLine("Missing one or more cubemap type image files. skipped to next file.");
+                SharedMethods.DisplayLogMessage("Missing image file. skipped repacking image." + currentDDSfile, true);
                 return;
             }
 
-            var isAllValidImg = CheckExtImgInfoBatch(6, extractedIMGBdir, imgHeaderBlockFileName, imgbVars);
-            if (!isAllValidImg)
-            {
-                return;
-            }
+            var gtexOffsettable = new List<(uint, uint)>();
 
-            using (var gtexStream = new FileStream(imgHeaderBlockFile, FileMode.Open, FileAccess.Read))
+            using (var gtexReader = new BinaryReader(File.Open(imgHeaderBlockFile, FileMode.Open, FileAccess.Read)))
             {
-                using (var gtexReader = new BinaryReader(gtexStream))
+                gtexReader.BaseStream.Position = gtex.GTEXOffset + gtex.MipInfoTableOffset;
+
+                for (int j = 0; j < gtex.MipCount * 6; j++)
                 {
-
-                    var cubeMapCount = 1;
-                    uint readStart = 0;
-                    var file1 = true;
-
-                    for (int c = 0; c < 6; c++)
-                    {
-                        var currentDDSfile = Path.Combine(extractedIMGBdir, imgHeaderBlockFileName + imgbVars.GtexImgType + cubeMapCount + ".dds");
-
-                        using (var ddsStream = new FileStream(currentDDSfile, FileMode.Open, FileAccess.Read))
-                        {
-                            using (var tempDDSstream = new MemoryStream())
-                            {
-                                ddsStream.Seek(128, SeekOrigin.Begin);
-                                ddsStream.CopyTo(tempDDSstream);
-
-
-                                uint mipStart = 0;
-                                uint nextMipStart = 0;
-                                uint totalMipSize = 0;
-
-                                if (file1)
-                                {
-                                    readStart = imgbVars.GtexStartVal + 24;
-                                }
-
-                                for (int m = 0; m < imgbVars.GtexImgMipCount; m++)
-                                {
-                                    gtexReader.BaseStream.Position = readStart;
-                                    uint copyMipAt = gtexReader.ReadBytesUInt32(true);
-
-                                    gtexReader.BaseStream.Position = readStart + 4;
-                                    uint mipSize = gtexReader.ReadBytesUInt32(true);
-
-                                    imgbStream.Seek(copyMipAt, SeekOrigin.Begin);
-                                    tempDDSstream.ExCopyTo(imgbStream, mipStart, mipSize);
-
-                                    gtexReader.BaseStream.Position = readStart + 8;
-                                    readStart = (uint)gtexReader.BaseStream.Position;
-
-                                    nextMipStart = mipSize + totalMipSize;
-                                    mipStart = nextMipStart;
-                                    totalMipSize = nextMipStart;
-                                }
-                            }
-                        }
-
-                        file1 = false;
-
-                        Console.WriteLine("Repacked " + currentDDSfile + " data to IMGB.");
-
-                        cubeMapCount++;
-                    }
-                }
-            }
-        }
-        #endregion
-
-
-        #region Stack type
-        public static void RepackStackType1(string imgHeaderBlockFile, string extractedIMGBdir, IMGBVariables imgbVars, FileStream imgbStream)
-        {
-            var imgHeaderBlockFileName = Path.GetFileName(imgHeaderBlockFile);
-
-            var isMissingAnImg = SharedMethods.CheckImgFilesBatch(imgbVars.GtexImgDepth, extractedIMGBdir, imgHeaderBlockFileName, imgbVars);
-            if (isMissingAnImg)
-            {
-                Console.WriteLine("Missing one or more stack type image files. skipped to next file.");
-                return;
-            }
-
-            var isAllValidImg = CheckExtImgInfoBatch(imgbVars.GtexImgDepth, extractedIMGBdir, imgHeaderBlockFileName, imgbVars);
-            if (!isAllValidImg)
-            {
-                return;
-            }
-
-            using (var gtexStream = new FileStream(imgHeaderBlockFile, FileMode.Open, FileAccess.Read))
-            {
-                using (var gtexReader = new BinaryReader(gtexStream))
-                {
-                    gtexReader.BaseStream.Position = imgbVars.GtexStartVal + 16;
-                    var mipOffsetsStartPos = gtexReader.ReadBytesUInt32(true);
-
-                    var mipOffsetsReadStartPos = imgbVars.GtexStartVal + mipOffsetsStartPos;
-
-                    gtexReader.BaseStream.Position = mipOffsetsReadStartPos;
-                    var copyMipAt = gtexReader.ReadBytesUInt32(true);
-
-                    gtexReader.BaseStream.Position = mipOffsetsReadStartPos + 4;
+                    var mipStart = gtexReader.ReadBytesUInt32(true);
                     var mipSize = gtexReader.ReadBytesUInt32(true);
 
+                    gtexOffsettable.Add((mipStart, mipSize));
+                }
+            }
 
-                    var stackCount = 1;
-                    uint mipStart = 0;
+            if (!CheckDDSImage(currentDDSfile, gtex))
+            {
+                return;
+            }
 
-                    for (int s = 0; s < imgbVars.GtexImgDepth; s++)
+            using (var imgbWriter = new BinaryWriter(imgbStream))
+            {
+                using (var ddsReader = new BinaryReader(File.Open(currentDDSfile, FileMode.Open, FileAccess.Read)))
+                {
+                    _ = ddsReader.BaseStream.Position += 128;
+
+                    for (int i = 0; i < gtex.MipCount * 6; i++)
                     {
-                        var currentDDSfile = Path.Combine(extractedIMGBdir, imgHeaderBlockFileName + imgbVars.GtexImgType + stackCount + ".dds");
+                        _ = imgbWriter.BaseStream.Seek(gtexOffsettable[i].Item1, SeekOrigin.Begin);
 
-                        using (var ddsStream = new FileStream(currentDDSfile, FileMode.Open, FileAccess.Read))
-                        {
-                            using (var ddsReader = new BinaryReader(ddsStream))
-                            {
-                                SharedMethods.GetExtImgInfo(ddsReader, imgbVars);
-
-                                using (var tempDDSstream = new MemoryStream())
-                                {
-                                    ddsStream.Seek(128, SeekOrigin.Begin);
-                                    ddsStream.CopyTo(tempDDSstream);
-
-                                    imgbStream.Seek(copyMipAt, SeekOrigin.Begin);
-                                    tempDDSstream.ExCopyTo(imgbStream, mipStart, mipSize);
-
-                                    var NextStackImgStart = mipStart + mipSize;
-                                    mipStart = NextStackImgStart;
-                                }
-                            }
-                        }
-
-                        Console.WriteLine("Repacked " + currentDDSfile + " data to IMGB.");
-
-                        stackCount++;
+                        var currentMipData = ddsReader.ReadBytes((int)gtexOffsettable[i].Item2);
+                        imgbWriter.Write(currentMipData);
                     }
                 }
             }
+
+            SharedMethods.DisplayLogMessage("Repacked " + currentDDSfile, true);
         }
         #endregion
 
 
-        #region Common methods
-        private static bool CheckExtImgInfo(IMGBVariables imgbVars)
+        #region Volumemap type
+        public static void RepackVolumemap(string imgHeaderBlockFile, string extractedIMGBdir, GTEX gtex, FileStream imgbStream)
         {
-            var isValidImg = true;
-            if (imgbVars.GtexImgMipCount != imgbVars.OutImgMipCount)
+            if (gtex.MipCount > 1)
             {
-                Console.WriteLine("Current image's mip count does not match the original image's mip count. skipped to next file.");
-                isValidImg = false;
+                SharedMethods.DisplayLogMessage("Detected more than one mip. mip 0 alone would be repacked", true);
             }
 
-            if (imgbVars.GtexImgWidth != imgbVars.OutImgWidth)
+            var currentDDSfile = Path.Combine(extractedIMGBdir, gtex.ImageName + "_volume.dds");
+
+            if (!File.Exists(currentDDSfile))
             {
-                Console.WriteLine("Current image's width does not match the original image's width. skipped to next file.");
-                isValidImg = false;
+                SharedMethods.DisplayLogMessage("Missing image file. skipped repacking image." + currentDDSfile, true);
+                return;
             }
 
-            if (imgbVars.GtexImgHeight != imgbVars.OutImgHeight)
+            var gtexOffsettable = new List<(uint, uint)>();
+
+            using (var gtexReader = new BinaryReader(File.Open(imgHeaderBlockFile, FileMode.Open, FileAccess.Read)))
             {
-                Console.WriteLine("Current image's height does not match the original image's height. skipped to next file.");
-                isValidImg = false;
+                gtexReader.BaseStream.Position = gtex.GTEXOffset + gtex.MipInfoTableOffset;
+                var mipStart = gtexReader.ReadBytesUInt32(true);
+                var mipSize = gtexReader.ReadBytesUInt32(true);
+
+                gtexOffsettable.Add((mipStart, mipSize));
             }
 
-            if (imgbVars.GtexImgFormatValue != imgbVars.OutImgFormatValue)
+            if (!CheckDDSImage(currentDDSfile, gtex))
             {
-                Console.WriteLine("Detected unknown image file format. skipped to next file.");
-                isValidImg = false;
+                return;
             }
 
-            return isValidImg;
-        }
-
-
-        private static bool CheckExtImgInfoBatch(int fileAmount, string extractImgbDir, string imgHeaderBlockFileName, IMGBVariables imgbVars)
-        {
-            var isAllValidImg = true;
-            var imgFileCount = 1;
-
-            for (int i = 0; i < fileAmount; i++)
+            using (var imgbWriter = new BinaryWriter(imgbStream))
             {
-                var fileToCheck = Path.Combine(extractImgbDir, imgHeaderBlockFileName + imgbVars.GtexImgType + imgFileCount + ".dds");
-
-                using (var ddsFileToCheck = new FileStream(fileToCheck, FileMode.Open, FileAccess.Read))
+                using (var ddsReader = new BinaryReader(File.Open(currentDDSfile, FileMode.Open, FileAccess.Read)))
                 {
-                    using (var ddsFileReader = new BinaryReader(ddsFileToCheck))
-                    {
-                        SharedMethods.GetExtImgInfo(ddsFileReader, imgbVars);
-                        var isValidImg = CheckExtImgInfo(imgbVars);
+                    _ = ddsReader.BaseStream.Position += 128;
+                    var currentMipData = ddsReader.ReadBytes((int)gtexOffsettable[0].Item2);
 
-                        if (!isValidImg)
-                        {
-                            isAllValidImg = false;
-                        }
-                    }
+                    _ = imgbWriter.BaseStream.Seek(gtexOffsettable[0].Item1, SeekOrigin.Begin);
+                    imgbWriter.Write(currentMipData);
+                }
+            }
+
+            SharedMethods.DisplayLogMessage("Repacked " + currentDDSfile, true);
+        }
+        #endregion
+
+
+        #region Shared
+        private static bool CheckDDSImage(string currentDDSfile, GTEX gtex)
+        {
+            if (new FileInfo(currentDDSfile).Length < 128)
+            {
+                SharedMethods.DisplayLogMessage("DDS size is invalid. skipped repacking image.", true);
+                return false;
+            }
+
+            using (var ddsReader = new BinaryReader(File.Open(currentDDSfile, FileMode.Open, FileAccess.Read)))
+            {
+                _ = ddsReader.BaseStream.Position = 12;
+                var height = ddsReader.ReadUInt32();
+                var width = ddsReader.ReadUInt32();
+
+                if (gtex.Height != height)
+                {
+                    SharedMethods.DisplayLogMessage("Height in the dds file, does not match with the original image's height. skipped repacking image.", true);
+                    return false;
                 }
 
-                imgFileCount++;
+                if (gtex.Width != width)
+                {
+                    SharedMethods.DisplayLogMessage("Width in the dds file, does not match with the original image's width. skipped repacking image.", true);
+                    return false;
+                }
+
+                _ = ddsReader.BaseStream.Position += 4;
+                var depth = ddsReader.ReadUInt32();
+                var mipCount = ddsReader.ReadUInt32();
+
+                if (gtex.Type == 2 && gtex.Depth != depth)
+                {
+                    SharedMethods.DisplayLogMessage("Volume texture's depth count in the dds file, does not match with the original image's depth count. skipped repacking image.", true);
+                    return false;
+                }
+
+                if (gtex.MipCount != mipCount)
+                {
+                    SharedMethods.DisplayLogMessage("Mipcount in the dds file, does not match with the original image's mipcount. skipped repacking image.", true);
+                    return false;
+                }
+
+                _ = ddsReader.BaseStream.Position += 52;
+                var ddsFourCC = ddsReader.ReadBytesString(4, false);
+
+                var isValidPixelFormat = false;
+
+                switch (ddsFourCC)
+                {
+                    case "":
+                        if (mipCount > 1)
+                        {
+                            isValidPixelFormat = gtex.Format == 3;
+                        }
+                        else
+                        {
+                            isValidPixelFormat = gtex.Format == 4;
+                        }
+                        break;
+
+                    case "DXT1":
+                        isValidPixelFormat = gtex.Format == 24;
+                        break;
+
+                    case "DXT3":
+                        isValidPixelFormat = gtex.Format == 25;
+                        break;
+
+                    case "DXT5":
+                        isValidPixelFormat = gtex.Format == 26;
+                        break;
+                }
+
+                if (!isValidPixelFormat)
+                {
+                    SharedMethods.DisplayLogMessage("Pixel format in the dds file is invalid. skipped repacking image.", true);
+                    return false;
+                }
             }
 
-            return isAllValidImg;
+            return true;
         }
         #endregion
     }
