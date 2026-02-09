@@ -11,9 +11,7 @@ public static void UnpackIMGB(string imgHeaderBlockFile, string imgbFile, string
 
 }
 ```
-The `IMGBUnpack.UnpackIMGB()` function will unpack each mip data stored in the IMGB file using the image header block file. 
-
-This function requires these following parameters to be specified:
+This function will unpack each mip data stored in the IMGB file using the image header block file. these following parameters to be specified:
 - `imgHeaderBlockFile`
 <br>Full path to the image header block file with the `GTEX` section.
 
@@ -27,16 +25,16 @@ This function requires these following parameters to be specified:
 <br>The platform of the IMGB and the header block file. if you are dealing with a PC version file, use the `win32` enum. if its the PS3 or Xbox 360 versions, then use either the `ps3` or `x360` enum.
 
 - `showLog`
-<br>Set this to `true`, if you want to see parsing related information that will be used when unpacking the image file. 
+<br>Set this to `true`, if you want to see headerblock related parsing information, that is used when unpacking the image file. 
 
 ### General notes
-- If the unpacked image filenames end with `_cbmap_#`, then the image file is part of a cubemap set that uses a single header block file. the pixel format, dimensions, and mip counts are all shared by the images belonging to this set.
+- If the unpacked image filenames end with `_cbmap.dds`, then the image file is a DDS cubemap, that uses a single header block file.
 
-- If the unpacked image filenames end with `_stack_#`, then the image file is part of a stack set that uses a single header block file. the pixel format, dimensions, and mip count are all shared by the images belonging to this set. do note that the image files should contain only one mip and if there are multiple mips, then the image file itself will not be unpacked.
+- If the unpacked image filenames end with `_volume.dds`, then the image file is a DDS volumemap, that uses a single header block file. do note that the image files should contain only one mip and if there are multiple mips, then the image file itself will not be unpacked.
 
 - For a list of image types, please refer to this [page](https://github.com/LR-Research-Team/Datalog/wiki/TRB#texture-type).
 
-- For PS3 version image files that are swizzled or in a different color order, this function will first unpack the mip, unswizzles the mip, and then change the color order to BGRA from ARGB.
+- For PS3 version image files that are swizzled or in a different color order, the image will be unswizzled and the color order is changed to ARGB.
 
 - As I do not know the unswizzling method for the Xbox 360 version image files, this function will only unpack the mips without unswizzling them.
 
@@ -44,11 +42,16 @@ This function requires these following parameters to be specified:
 The `IMGBRepack` class provides two types of repacking functions to repack image files into the IMGB file. repacking is supported only for the PC version image files.
 
 ### Repack Function 1
-The `IMGBRepack.RepackIMGBType1()` function will repack the image file only when the image file's pixel format, dimensions, mip count are all same as the original image file.<br>This function is recommended for repacking image files that are inside `.xgr` files and the header block file will not be updated by this function.
+```c# 
+public static void RepackIMGBType1(string imgHeaderBlockFile, string outImgbFile, string extractedIMGBdir, IMGBFlags.Platforms imgbPlatform)
+{
 
-This function requires these following parameters to be specified:
+}
+```
+
+This function will repack the image file only when the image file's pixel format, dimensions, mip count are all same as the original image file.<br>This function is recommended for repacking image files that are inside `.imgb` files that are paired with `.xgr`, or `.xfv` files and the header block file will not be updated by this function. these following parameters to be specified:
 - `imgHeaderBlockFile`
-<br>Full path to the image header block file with the `GTEX` section. the image file should also contain the same name as this header block file, but with the `.dds` extension.
+<br>Full path to the image header block file with the `GTEX` section. the image file should be in `.dds` extension, and contain the same name as the header block file without the block file's extension (`.txb`, `.txbh`, `.vtex`), but can contain the `_cbmap` or `_volume` at the end of the filename.
 
 - `outImgbFile`
 <br> Full path to the `.imgb` file. the file should be present in the path.
@@ -59,20 +62,16 @@ This function requires these following parameters to be specified:
 - `imgbPlatform`
 <br>The platform of the IMGB and the header block file. use the `win32` enum.
 
-- `showLog`
-<br>Set this to `true`, if you want to see parsing related information that will be used when repacking the image file.
-
 ### Repack Function 2
-The `IMGBRepack.RepackIMGBType2()` function can be used to repack image files that has a different pixel format (see [supported](https://github.com/LR-Research-Team/Datalog/wiki/TRB#texture-format) formats), different dimensions, and different mip count compared to the original image file.
+```c# 
+public static void RepackIMGBType2(string imgHeaderBlockFile, string outImgbFile, string extractedIMGBdir, IMGBFlags.Platforms imgbPlatform)
+{
 
-This function is useful for repacking image files that are modified heavily compared to the original file and is recommended for repacking image files that are inside `.trb` and `.imgb` files. the header block file will be updated by this function.
-
-This function requires these following parameters to be specified:
-- `tmpImgHeaderBlockFile`
-<br>Full path to the image header block file with the `GTEX` section. its better to use a temporary copy of the file to ensure that the original file remains safe, if any exceptions or errors occur inside this function. if you are sure that no errors will occur with the file, then you can use the original file's path itself.
-
-- `imgHeaderBlockFileName`
-<br>The name of the image header block file. the image file should also contain the same name as this header block file, but with the `.dds` extension.
+}
+```
+This function will repack image files that has a different pixel format (see [supported](https://github.com/LR-Research-Team/Datalog/wiki/TRB#texture-format) formats), different dimensions, and different mip count compared to the original image file.<br>This function is recommended for repacking image files that are inside `.imgb` files that are paired with `.trb` files and the header block file will be updated by this function. these following parameters have to be specified:
+- `imgHeaderBlockFile`
+<br>Full path to the image header block file with the `GTEX` section. the image file should be in `.dds` extension, and contain the same name as the header block file without the block file's extension (`.txb`, `.txbh`), but can contain the `_cbmap` or `_volume` at the end of the filename.
 
 - `outImgbFile`
 <br>Full path to the `.imgb` file. the file may or may not exist in the path.
@@ -82,9 +81,6 @@ This function requires these following parameters to be specified:
 
 - `imgbPlatform`
 <br>The platform of the IMGB and the header block file. use the `win32` enum.
-
-- `showLog`
-<br>Set this to `true`, if you want to see parsing related information that will be used when repacking the image file.
 
 ### General notes
 - If you have repacked an image with a different pixel format and the image doesn't look proper ingame, then try using the same pixel format as the orignal image file. this issue can occur when the shader used by the game is expecting the pixel format of the image to be similar to the original image.
