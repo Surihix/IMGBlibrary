@@ -84,4 +84,5 @@ This function will repack image files that has a different pixel format (see [su
 
 ### General notes
 - If you have repacked an image with a different pixel format and the image doesn't look proper ingame, then try using the same pixel format as the orignal image file. this issue can occur when the shader used by the game is expecting the pixel format of the image to be similar to the original image.
+
 - Do not modify image files that are mean't to be used by the game's shaders. you can identify these image files by their content and the non standard dimensions. modfying these images can cause all sorts of rendering issues to crop up ingame. 
