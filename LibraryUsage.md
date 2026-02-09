@@ -5,6 +5,12 @@ As we are dealing with DDS type image files, each image file is made up of one o
 This header block file contains all the necessary information about the image such as the DDS pixel format, the image type, the number of mips that make up the image, and the dimensions of the image. all of this information, will be present after the `GTEX` section in the file and for more information on the `GTEX` section, please refer to this [page](https://github.com/LR-Research-Team/Datalog/wiki/TRB#gtex).
 
 ## Unpacking
+```c# 
+public static void UnpackIMGB(string imgHeaderBlockFile, string imgbFile, string extractIMGBdir, IMGBFlags.Platforms imgbPlatform, bool showLog)
+{
+
+}
+```
 The `IMGBUnpack.UnpackIMGB()` function will unpack each mip data stored in the IMGB file using the image header block file. 
 
 This function requires these following parameters to be specified:
