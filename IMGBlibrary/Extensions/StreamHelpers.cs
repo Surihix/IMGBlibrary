@@ -39,4 +39,20 @@ internal static class StreamHelpers
             }
         }
     }
+
+    /// <summary>
+    /// Pads null bytes into a stream to make its size divisble by a pad value. 
+    /// ensure that the stream is safe for appending data.
+    /// </summary>
+    /// <param name="padValue">.</param>
+    public static void PadStream(this Stream stream, long padValue)
+    {
+        long remainderCheck;
+
+        if ((remainderCheck = stream.Length % padValue) != 0)
+        {
+            var paddingData = new byte[padValue - remainderCheck];
+            stream.Write(paddingData, 0, paddingData.Length);
+        }
+    }
 }

@@ -161,6 +161,7 @@ namespace IMGBlibrary.Repack
             {
                 newHeaderBlockStream.Write(headerBlockFileData, 0, (int)gtex.GTEXOffset + 24);
                 newHeaderBlockStream.Write(mipInfoTableData, 0, mipInfoTableSize);
+                newHeaderBlockStream.PadStream(16);
             }
 
             var headerBlockFileSize = (uint)new FileInfo(imgHeaderBlockFile).Length;
