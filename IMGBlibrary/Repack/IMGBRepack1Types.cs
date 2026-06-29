@@ -210,14 +210,7 @@ namespace IMGBlibrary.Repack
                 switch (ddsFourCC)
                 {
                     case "":
-                        if (mipCount > 1)
-                        {
-                            isValidPixelFormat = gtex.Format == 3;
-                        }
-                        else
-                        {
-                            isValidPixelFormat = gtex.Format == 4;
-                        }
+                        isValidPixelFormat = ddsReader.ReadByte() == 32;
                         break;
 
                     case "DXT1":
